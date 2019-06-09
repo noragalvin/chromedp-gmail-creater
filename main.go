@@ -4,83 +4,41 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"strings"
-	"time"
 
-	"github.com/chromedp/cdproto/cdp"
 	"github.com/chromedp/chromedp"
 )
 
 func main() {
-	// create context
-	ctx, cancel := chromedp.NewContext(context.Background())
+	// create chrome instance
+	userAgent := "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36"
+	allocContext, _ := chromedp.NewExecAllocator(
+		context.Background(),
+		chromedp.UserAgent(userAgent),
+	)
+
+	ctx, cancel := chromedp.NewContext(
+		allocContext,
+		chromedp.WithLogf(log.Printf),
+	)
+
 	defer cancel()
 
-	// list awesome go projects for the "Selenium and browser control tools."
-	res, err := listAwesomeGoProjects(ctx, "Selenium and browser control tools.")
+	loginURL := "https://accounts.google.com/signin/v2/identifier?service=mail&flowName=GlifWebSignIn&flowEntry=ServiceLogin"
+	registerElement := "#ow243"
+	err := chromedp.Run(ctx, LoginPage(loginURL, registerElement))
 	if err != nil {
-		log.Fatalf("could not list awesome go projects: %v", err)
+		log.Fatal(err)
 	}
+	fmt.Println("logged")
 
-	// output the values
-	for k, v := range res {
-		log.Printf("project %s (%s): '%s'", k, v.URL, v.Description)
-	}
 }
 
-// projectDesc contains a url, description for a project.
-type projectDesc struct {
-	URL, Description string
-}
-
-// listAwesomeGoProjects is the highest level logic for browsing to the
-// awesome-go page, finding the specified section sect, and retrieving the
-// associated projects from the page.
-func listAwesomeGoProjects(ctx context.Context, sect string) (map[string]projectDesc, error) {
-	// force max timeout of 15 seconds for retrieving and processing the data
-	var cancel func()
-	ctx, cancel = context.WithTimeout(ctx, 15*time.Second)
-	defer cancel()
-
-	sel := fmt.Sprintf(`//p[text()[contains(., '%s')]]`, sect)
-
-	// navigate
-	if err := chromedp.Run(ctx, chromedp.Navigate(`https://github.com/avelino/awesome-go`)); err != nil {
-		return nil, fmt.Errorf("could not navigate to github: %v", err)
+// https://github.com/TestingPens/SwarmIt/blob/master/register.go
+// LoginPage ..
+func LoginPage(urlstr, elem string) chromedp.Tasks {
+	return chromedp.Tasks{
+		chromedp.Navigate(urlstr),
+		chromedp.WaitReady(elem),
+		chromedp.Submit(elem),
 	}
-
-	// wait visible
-	if err := chromedp.Run(ctx, chromedp.WaitVisible(sel)); err != nil {
-		return nil, fmt.Errorf("could not get section: %v", err)
-	}
-
-	sib := sel + `/following-sibling::ul/li`
-
-	// get project link text
-	var projects []*cdp.Node
-	if err := chromedp.Run(ctx, chromedp.Nodes(sib+`/child::a/text()`, &projects)); err != nil {
-		return nil, fmt.Errorf("could not get projects: %v", err)
-	}
-
-	// get links and description text
-	var linksAndDescriptions []*cdp.Node
-	if err := chromedp.Run(ctx, chromedp.Nodes(sib+`/child::node()`, &linksAndDescriptions)); err != nil {
-		return nil, fmt.Errorf("could not get links and descriptions: %v", err)
-	}
-
-	// check length
-	if 2*len(projects) != len(linksAndDescriptions) {
-		return nil, fmt.Errorf("projects and links and descriptions lengths do not match (2*%d != %d)", len(projects), len(linksAndDescriptions))
-	}
-
-	// process data
-	res := make(map[string]projectDesc)
-	for i := 0; i < len(projects); i++ {
-		res[projects[i].NodeValue] = projectDesc{
-			URL:         linksAndDescriptions[2*i].AttributeValue("href"),
-			Description: strings.TrimPrefix(strings.TrimSpace(linksAndDescriptions[2*i+1].NodeValue), "- "),
-		}
-	}
-
-	return res, nil
 }
