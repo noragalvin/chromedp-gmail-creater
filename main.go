@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/chromedp/chromedp"
 )
@@ -19,16 +18,16 @@ func main() {
 
 	ctx, cancel := chromedp.NewContext(
 		allocContext,
-		chromedp.WithLogf(log.Printf),
+		chromedp.WithDebugf(log.Printf),
 	)
 
 	defer cancel()
 
-	loginURL := "https://accounts.google.com/signin/v2/identifier?service=mail&flowName=GlifWebSignIn&flowEntry=ServiceLogin"
+	// loginURL := "https://accounts.google.com/signin/v2/identifier?service=mail&flowName=GlifWebSignIn&flowEntry=ServiceLogin"
 	// loginURL := "https://google.com"
+	loginURL := "https://github.com"
 	registerElement := "#ow244.U26fgb.c7fp5b.FS4hgd.nDKKZc.NpwL8d.t29vte"
 	personalResgisterElement := `#initialView div.xkfVF.nnGvjf div.JPdR6b.qjTEB div.XvhY1d div.JAPqpe.K0NPx span.z80M1.G3hhxb`
-	// log.Println(time.Duration(8239-rand.Intn(100)) * time.Millisecond)
 	err := chromedp.Run(ctx, LoginPage(loginURL, registerElement, personalResgisterElement))
 	if err != nil {
 		log.Fatal(err)
@@ -42,12 +41,12 @@ func main() {
 func LoginPage(urlstr, elem1, elem2 string) chromedp.Tasks {
 	return chromedp.Tasks{
 		chromedp.Navigate(urlstr),
-		chromedp.Sleep(2 * time.Second),
-		chromedp.WaitVisible(elem1, chromedp.ByID),
-		// chromedp.Sleep(time.Duration(8239-rand.Intn(100)) * time.Millisecond),
-		chromedp.Click(elem1, chromedp.NodeVisible),
-		chromedp.WaitVisible(elem2, chromedp.ByID),
-		// chromedp.Sleep(time.Duration(8239-rand.Intn(100)) * time.Millisecond),
-		chromedp.Click(elem2, chromedp.NodeVisible),
+		// chromedp.Sleep(2 * time.Second),
+		// chromedp.WaitVisible(elem1, chromedp.ByID),
+		// // chromedp.Sleep(time.Duration(8239-rand.Intn(100)) * time.Millisecond),
+		// chromedp.Click(elem1, chromedp.NodeVisible),
+		// chromedp.WaitVisible(elem2, chromedp.ByID),
+		// // chromedp.Sleep(time.Duration(8239-rand.Intn(100)) * time.Millisecond),
+		// chromedp.Click(elem2, chromedp.NodeVisible),
 	}
 }
